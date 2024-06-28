@@ -1,0 +1,365 @@
+---
+title: "Data Interpretation Thesis"
+author: "Bernardo"
+date: "21/06/2024"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r}
+install.packages("tidyverse")
+library(tidyverse)
+
+```
+
+```{r}
+data <- read.csv("Qualtrics.csv")
+data <- data[,-c(1:17)]
+as.character(as.matrix(data[1,]))
+names(data) <- as.character(as.matrix(data[1,]))
+data <- data[-c(1:2),]
+names(data)[1] <- "consent"
+names(data)[2] <- "age"
+names(data)[3] <- "gender"
+names(data)[4] <- "nationality"
+names(data)[5] <- "Gain check"
+names(data)[6] <- "Loss check"
+names(data)[7] <- "Neutral Check"
+names(data)[8] <- "R1"
+names(data)[9] <- "R2"
+names(data)[10] <- "R3"
+names(data)[11] <- "R4"
+names(data)[12] <- "R5"
+names(data)[13] <- "R6"
+names(data)[14] <- "R7"
+names(data)[15] <- "Int1"
+names(data)[16] <- "Int2"
+names(data)[17] <- "Int3"
+names(data)[18] <- "Int4"
+names(data)[19] <- "Int5"
+names(data)[20] <- "AttentionCheck"
+names(data)[21] <- "Kno1"
+names(data)[22] <- "Kno2"
+names(data)[23] <- "Kno3"
+names(data)[24] <- "Kno4"
+names(data)[25] <- "Kno5"
+names(data)[26] <- "condition"
+names(data)[27] <- "cond"
+data_clean <- data[!(is.na(data$Kno5) | data$Kno5 == ""),]
+View(data_clean)
+```
+```{r}
+install.packages(psych)
+library(psych)
+## Age
+data_clean$age <- as.numeric(as.character(data_clean$age))
+class(data_clean$age)
+mean(data_clean$age)
+min(data_clean$age)
+max(data_clean$age)
+sd(data_clean$age)
+
+str(data_clean)
+```
+```{r}
+columns_to_convert <- c("R1", "R2", "R3", "R4", "R5", "R6", "R7", 
+                        "Int1", "Int2", "Int3", "Int4", "Int5", 
+                        "AttentionCheck", "Kno1", "Kno2", "Kno3", "Kno4", "Kno5", "condition")
+for (col in columns_to_convert) {
+  data_clean[[col]] <- as.numeric(data_clean[[col]])
+}
+
+str(data_clean)
+```
+```{r}
+nrow(data_clean[data_clean$gender == "1",])
+nrow(data_clean[data_clean$gender == "2",])
+```
+```{r}
+nrow(data_clean[data_clean$condition == "-1",])
+nrow(data_clean[data_clean$condition == "0",])
+nrow(data_clean[data_clean$condition == "1",])
+
+```
+```{r}
+summary(data[, columns_to_convert])
+
+# Means and SDs for each scale
+risk_means <- colMeans(data_clean[, grep("^R", names(data_clean))], na.rm = TRUE)
+risk_sds <- apply(data_clean[, grep("^R", names(data_clean))], 2, sd, na.rm = TRUE)
+
+int_means <- colMeans(data_clean[, grep("^Int", names(data_clean))], na.rm = TRUE)
+int_sds <- apply(data_clean[, grep("^Int", names(data_clean))], 2,sd, na.rm = TRUE)
+
+kno_means <- colMeans(data_clean[, grep("^Kno", names(data_clean))], na.rm = TRUE)
+kno_sds <- apply(data_clean[, grep("^Kno", names(data_clean))], 2, sd, na.rm = TRUE)
+
+risk_means
+risk_sds
+int_means
+int_sds
+kno_means
+kno_sds
+
+```
+```{r}
+risk_data <- data_clean[, grep("^R", names(data))]
+int_data <- data_clean[, grep("^Int", names(data))]
+kno_data <- data_clean[, grep("^Kno", names(data))]
+```
+```{r}
+##Cronbachs Alpha Risk
+risk_items <- data_clean[, grep("^R", names(data))]
+cronbach_alpha_risk <- psych::alpha(risk_items)
+print(cronbach_alpha_risk)
+
+```
+```{r}
+##Cronbachs Alpha Purchase Intention
+int_items <- data_clean[, grep("^Int", names(data))]
+cronbach_alpha_int <- psych::alpha(int_items)
+print(cronbach_alpha_int)
+```
+```{r}
+##Cronbachs Alpha Knowledge
+kno_items <- data_clean[, grep("^Kno", names(data))]
+cronbach_alpha_kno <- psych::alpha(kno_items)
+print(cronbach_alpha_kno)
+```
+```{r}
+##Factor analaysis
+fa(kno_items, nfactors = 1, rotate = "oblimin")
+
+fa(int_items, nfactors = 1, rotate = "oblimin")
+
+fa(risk_items, nfactors = 1, rotate = "oblimin")
+
+```
+
+
+
+
+```{r}
+data$cond <- factor(data$cond, levels = c("neutral", "gain", "loss"))
+
+```
+
+
+```{r}
+data_clean$condition_recode <- ifelse(data_clean$cond == "Gain", 1,
+                               ifelse(data_clean$cond == "neutral", 0,
+                               ifelse(data_clean$cond == "loss", -1, NA)))
+table(data_clean$condition_recode)
+```
+
+```{r}
+gain_condition <- data$condition == "1"
+```
+
+```{r}
+###GAIN CONDITION - NOT USED WAS JUST EXPERIMENTING
+data_clean$gain_condition <- as.factor(data_clean$condition == "1")
+data_clean$int_mean <- rowMeans(data_clean[, grep("^Int", names(data_clean))], na.rm = TRUE)
+anova_result <- aov(int_mean ~ gain_condition, data = data_clean)
+summary(anova_result)
+```
+```{r}
+###LOSS CONDITION - NOT USED WAS JUST EXPERIMENTING
+loss_condition <- data$condition == "-1"
+data_clean$loss_condition <- as.factor(data_clean$condition == "-1")
+data_clean$int_mean <- rowMeans(data_clean[, grep("^Int", names(data_clean))], na.rm = TRUE)
+anova_result <- aov(int_mean ~ loss_condition, data = data_clean)
+summary(anova_result)
+
+```
+```{r}
+###NEUTRAL CONDITION - NOT USED WAS JUST EXPERIMENTING
+neutral_condition <- data$condition == "0"
+data_clean$neutral_condition <- as.factor(data_clean$condition == "0")
+data_clean$int_mean <- rowMeans(data_clean[, grep("^Int", names(data_clean))], na.rm = TRUE)
+anova_result <- aov(int_mean ~ loss_condition, data = data_clean)
+summary(anova_result)
+```
+
+```{r}
+anova_result <- aov(int_mean ~ condition_recode, data = data_clean)
+summary(anova_result)
+```
+```{r}
+##Recoding Gender
+data_clean$gender_dummy <- ifelse(data_clean$gender == "1", 1,
+                           ifelse(data_clean$gender == "2", 0, NA))
+table(data_clean$gender_dummy)
+```
+
+```{r}
+data_clean$risk_mean <- rowMeans(data_clean[, grep("^R", names(data_clean))], na.rm = TRUE)
+data_clean$risk_mean
+data_clean$kno_mean <- rowMeans(data_clean[, grep("^Kno", names(data_clean))], na.rm = TRUE)
+data_clean$int_mean <- rowMeans(data_clean[, grep("^Int", names(data_clean))], na.rm = TRUE)
+data_clean$int_mean
+sum_int_mean <- sum(data_clean$int_mean) 
+sum_int_mean/78
+```
+```{r}
+gain_condition_data <- data_clean[data_clean$condition_recode == "1", ]
+sum_gain_int_mean <- sum(gain_condition_data$int_mean, na.rm = TRUE)
+sum_gain_int_mean/28
+
+neutral_condition_data <- data_clean[data_clean$condition_recode == "0", ]
+sum_neutral_int_mean <- sum(neutral_condition_data$int_mean, na.rm = TRUE)
+sum_neutral_int_mean/27
+
+
+loss_condition_data <- data_clean[data_clean$condition_recode == "-1", ]
+sum_loss_int_mean <- sum(loss_condition_data$int_mean, na.rm = TRUE)
+sum_loss_int_mean/23
+```
+
+```{r}
+anova <- aov(int_mean ~ condition_recode + data_clean$age + gender_dummy + risk_mean, data = data_clean)
+anova
+summary(anova)
+```
+```{r}
+anova_risk <- aov(risk_mean ~ condition_recode, data = data_clean)
+anova_risk
+summary(anova_risk)
+```
+```{r}
+install.packages("ggplot2")
+library(ggplot2)
+```
+
+```{r}
+##Barplot for Purchase Intention and Message Framing
+ggplot(data_clean, aes(x = condition_recode, y = int_mean, fill)) +
+  stat_summary(fun = "mean", geom = "bar", position = "dodge") +
+  labs(title = "Mean Purchase Intention per Condition",
+       x = "Loss                                      Neutral                                        Gain",
+       y = "Mean Purchase Intention")
+```
+
+
+```{r}
+
+model <- lm(int_mean ~ condition_recode + age + gender_dummy + kno_mean + kno_mean*condition_recode + risk_mean, data = data_clean)
+summary(model)
+
+
+ggplot(data_clean, aes(x = age, y = int_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Purchase Intention and Age", x = "Age", y = "Purchase Intention")
+
+
+ggplot(data_clean, aes(x = gender_dummy, y = int_mean)) +
+  geom_jitter(width = 0.1) +
+  geom_smooth(method = "lm", col = "red", aes(group = 1)) +
+  labs(title = "Purchase Intention and Gender", x = "Gender (0 = Female, 1 = Male)", y = "Purchase Intention")
+
+
+ggplot(data_clean, aes(x = risk_mean, y = int_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Purchase Intention and Perceived Environmental Risk", x = "Perceived Risk", y = "Purchase Intention")
+
+ggplot(data_clean, aes(x = kno_mean, y = int_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Purchase Intention and Attitudes Towards Environmental Knowledge", x = "Attitudes Towards Environmental Knowledge", y = "Purchase Intention")
+```
+```{r}
+model_risk <- lm(risk_mean ~ condition_recode + age + gender_dummy + kno_mean + kno_mean*condition_recode + risk_mean, data = data_clean)
+summary(model_risk)
+```
+
+```{r}
+##Barplot for Purchase Intention and Gender
+ggplot(data_clean, aes(x = gender_dummy, y = int_mean, fill)) +
+  stat_summary(fun = "mean", geom = "bar", position = "dodge") +
+  labs(title = "Mean Purchase Intention by Gender",
+       x = "Female                                                             Male",
+       y = "Mean Purchase Intention")
+```
+
+
+```{r}
+model <- lm(int_mean ~ condition_recode * kno_mean + risk_mean, data = data_clean)
+summary(model)
+
+data_clean$fitted_values <- fitted(model)
+
+ggplot(data_clean, aes(x = int_mean, y = fitted_values)) +
+  geom_point(color = "blue") + # Scatter plot of observed values
+  geom_smooth(method = "lm", col = "red") + # Regression fit line
+  labs(title = "Observed versus Fitted Values", x = "Observed Purchase Intention", y = "Fitted Values") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(data_clean, aes(x = fitted_values, y = resid(model))) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Fitted Values", x = "Fitted Values", y = "Residuals") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(data_clean, aes(x = condition_recode, y = int_mean)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Int Mean by Message Framing", x = "Message Framing", y = "Int Mean") +
+  theme_minimal()
+```
+```{r}
+ggplot(data_clean, aes(x = int_mean)) +
+  geom_histogram(binwidth = 0.5, fill = "blue", color = "black") +
+  labs(title = "Histogram of Int Mean", x = "Int Mean", y = "Frequency") +
+  theme_minimal()
+```
+```{r}
+ggplot(data_clean, aes(x = resid(model))) +
+  geom_histogram(binwidth = 0.5, fill = "blue", color = "black") +
+  labs(title = "Histogram of Residuals", x = "Residuals", y = "Frequency") +
+  theme_minimal()
+```
+```{r}
+ggplot(data_clean, aes(x = condition_recode, y = int_mean, fill = condition_recode) +
+  stat_summary(fun = "mean", geom = "bar") +
+  labs(title = "Bar Plot of Mean Int Mean by Message Framing", x = "Message Framing", y = "Mean Int Mean") +
+  theme_minimal())
+```
+
+
+
+
+
+
+
+
+
+
